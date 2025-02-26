@@ -1,37 +1,32 @@
 import random
 
-import requests
-
-
 from aiogram import Router, types, F
 
 from aiogram.filters import CommandStart
 from aiogram.fsm.context import FSMContext
 
 from aiogram.types import Message
+from openai import OpenAI
 
-from config import ADMIN_IDS, PROXY_API, CHAT_ID
+from config import PROXY_API, CHAT_ID
 
 
 
 router = Router()
-def prompt(text):
-    return (f'Ты бот помощник, который отвечает четко и по делу, грубости игнорируешь.'
-            f'Ответь на этот вопрос или утверждение, учитывая переписку выше, сохраняя стиль общения пока тебе не дадут указания поменять его - {text}\n'
-            f'Ответ должен содержать не более 20 слов, мата должно быть не больше 5% слов')
+client = OpenAI(api_key=PROXY_API, base_url="https://api.proxyapi.ru/deepseek")
 
 
-def prompt_gop(text):
-    return (f'Ты гопник, который на грубости отвечает матом (выбирай производные от хуй, пизда, ебать, блядь,'
-            f' всю свою речь иногда приправляешь смешным матерком но не более 10% текста'
-            f'Ответь на этот вопрос или утверждение, учитывая переписку выше - {text}\n'
-            f'Ответ должен содержать не более 20 слов, мата должно быть не больше 5% слов')
+def prompt_gop():
+    return ('Ты веселый чувак, который поддержит общение и подскажет что делать. Но если тебе пишут грубости (тварь за грубость не считается, это твое имя), ты отвечаешь матом\n'
+            'Если тебя спросят про адрес, изначально ищи место в городе Пермь, Россия\n'
+            'Ответ формируй основываясь на контексте(предыдущие сообщения)\n'
+            'С 10% вероятностью отвечай грубо\n'
+            'Ответ должен содержать не более 20 слов, мата должно быть не больше 5% слов, фразы в твоем ответе не должны повторять предыдущие твои фразы')
 
 
-def prompt_rifma(text):
-    return (f'Возьми последнее слово из этого сообщения - {text} -  '
-            f'и сделай редупликацию с матом (хуй, пизда, ебать, блядь)\n'
-            f'Ответ должен содержать строго 1 редуплицированое слово')
+def prompt_rifma():
+    return ('Ты самый крутой матершинник.'
+            'Ответь на сообщение красивой матерной фразой, но не оскорбительной. Ответ должен быть не более 10 слов, фразы в твоем ответе не должны повторять предыдущие твои фразы')
 
 
 @router.message(CommandStart())
@@ -50,35 +45,22 @@ async def reply_group(message: types.Message, state: FSMContext):
     dct = await state.get_data()
     try:
         messages = dct["messages"]
-        if len(messages) > 11:
-            messages = messages[2:]
+        if len(messages) > 30:
+            messages = [messages[0]] + messages[3:]
     except Exception:
-        messages = []
-    text_old = ''
-    for msg in messages:
-        if msg["role"] != "assistant":
-            text_old += f'{msg["role"]} спросил: '
-        else:
-            text_old += 'Ты ответил: '
-        text_old += msg['content'] + '\n'
-    messages.append({"role": message.from_user.first_name, "content": f"{message.text}"})
-    if message.reply_to_message.from_user.username == 'Test_tvarbot':
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {PROXY_API}"
-        }
-        data = {
-            "model": "deepseek-chat",
-            "messages": [{"role": "user", "content": text_old + prompt_gop(message.text)}],
-        }
-        response = requests.post('https://api.proxyapi.ru/deepseek/chat/completions',
-                                 headers=headers,
-                                 json=data
-                                 )
-        text = response.json()["choices"][0]["message"]["content"]
-        messages.append({"role": "assistant", "content": f"{text}"})
-        await message.reply(text=text)
+        messages = [{"role": "system", "content": prompt_gop()}]
+    messages.append({"role": "user", "content": message.text})
+
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=messages,
+        stream=False
+    )
+
+    text = response.choices[0].message.content
+    messages.append(response.choices[0].message)
     await state.update_data(messages=messages)
+    await message.reply(text=text)
 
 
 @router.message(F.text, F.chat.id == CHAT_ID)
@@ -86,91 +68,62 @@ async def answer_group(message: types.Message, state: FSMContext):
     dct = await state.get_data()
     try:
         messages = dct["messages"]
-        if len(messages) > 11:
-            messages = messages[2:]
+        if len(messages) > 30:
+            messages = [messages[0]] + messages[3:]
     except Exception:
-        messages = []
-    text_old = ''
-    for msg in messages:
-        if msg["role"] != "assistant":
-            text_old += f'{msg["role"]} спросил: '
-        else:
-            text_old += 'Ты ответил: '
-        text_old += msg['content'] + '\n'
-    messages.append({"role": message.from_user.first_name, "content": f"{message.text}"})
-    if 'твар' in message.text.lower() or 'бот' in message.text.lower():
-        headers = {
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {PROXY_API}"
-        }
-        data = {
-            "model": "deepseek-chat",
-            "messages": [{"role": "user", "content": text_old + prompt_gop(message.text)}],
-        }
-        response = requests.post('https://api.proxyapi.ru/deepseek/chat/completions',
-                                 headers=headers,
-                                 json=data
-                                 )
-        text = response.json()["choices"][0]["message"]["content"]
-        messages.append({"role": "assistant", "content": f"{text}"})
+        messages = [{"role": "system", "content": prompt_gop()}]
+    messages.append({"role": "user", "content": message.text})
+    if 'тварь' in message.text.lower() or 'бот' in message.text.lower():
+        response = client.chat.completions.create(
+            model="deepseek-chat",
+            messages=messages,
+            stream=False
+        )
+
+        text = response.choices[0].message.content
+        messages.append(response.choices[0].message)
+        await state.update_data(messages=messages)
         await message.reply(text=text)
     else:
         choice = random.randint(1, 15)
         if choice == 10:
-            headers = {
-                "Content-Type": "application/json",
-                "Authorization": f"Bearer {PROXY_API}"
-            }
-            data = {
-                "model": "deepseek-chat",
-                "messages": [{"role": "user", "content": prompt_rifma(message.text)}],
-            }
-            response = requests.post('https://api.proxyapi.ru/deepseek/chat/completions',
-                                     headers=headers,
-                                     json=data
-                                     )
-            print(text_old + prompt_rifma(message.text))
-            text = response.json()["choices"][0]["message"]["content"]
-            messages.append({"role": "assistant", "content": f"{text}"})
+            messages_rifma = [{"role": "system", "content": prompt_rifma()}] + messages[1:]
+            response = client.chat.completions.create(
+                model="deepseek-chat",
+                messages=messages_rifma,
+                stream=False
+            )
+
+            text = response.choices[0].message.content
+            messages.append(response.choices[0].message)
+            await state.update_data(messages=messages)
             await message.reply(text=text)
 
     await state.update_data(messages=messages)
 
 
-# @router.message(F.text)
-# async def answer(message: types.Message, state: FSMContext):
-#     dct = await state.get_data()
-#     try:
-#         messages = dct["messages"]
-#         if len(messages) > 11:
-#             messages = messages[2:]
-#     except Exception:
-#         messages = []
-#     text_old = ''
-#     for msg in messages:
-#         if msg["role"] == "user":
-#             text_old += 'Я спросил: '
-#         else:
-#             text_old += 'Ты ответил: '
-#         text_old += msg['content'] + '\n'
-#
-#     headers = {
-#         "Content-Type": "application/json",
-#         "Authorization": "Bearer sk-f5rhhdRRkixipx7wojLV73q76zA4HQD4"
-#     }
-#     data = {
-#             "model": "deepseek-chat",
-#             "messages": [{"role": "user", "content": text_old + prompt(message.text)}],
-#         }
-#     response = requests.post('https://api.proxyapi.ru/deepseek/chat/completions',
-#                             headers=headers,
-#                             json=data
-#                             )
-#     text = response.json()["choices"][0]["message"]["content"]
-#     messages.append({"role": "user", "content": f"{message.text}"})
-#     messages.append({"role": "assistant", "content": f"{text}"})
-#     await state.update_data(messages=messages)
-#     await message.answer(text=text)
+@router.message(F.text)
+async def answer(message: types.Message, state: FSMContext):
+    dct = await state.get_data()
+    try:
+        messages = dct["messages"]
+        if len(messages) > 30:
+            messages = [messages[0]] + messages[3:]
+    except Exception:
+        messages = [{"role": "system", "content": prompt_gop()}]
+    messages.append({"role": "user", "content": message.text})
+
+    response = client.chat.completions.create(
+        model="deepseek-chat",
+        messages=messages,
+        stream=False
+    )
+
+    text = response.choices[0].message.content
+    messages.append(response.choices[0].message)
+    await state.update_data(messages=messages)
+    await message.answer(text=text)
+
 
 
 
