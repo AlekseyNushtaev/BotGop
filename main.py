@@ -21,7 +21,6 @@ async def main() -> None:
 
     await bot.delete_webhook(drop_pending_updates=True)
     await dp.start_polling(bot)
-    await bot.send_message(chat_id=CHAT_ID, text='Я родился🦄')
 
 if __name__ == '__main__':
     asyncio.run(main())

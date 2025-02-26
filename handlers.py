@@ -20,6 +20,7 @@ def prompt_gop():
     return ('Ты веселый чувак, который поддержит общение и подскажет что делать. Но если тебе пишут грубости (тварь за грубость не считается, это твое имя), ты отвечаешь матом\n'
             'Если тебя спросят про адрес, изначально ищи место в городе Пермь, Россия\n'
             'Ответ формируй основываясь на контексте(предыдущие сообщения)\n'
+            'Если вопрос не четко сформулирован (например просто обратились к тебе), расскажи какой-нибудь интересный факт, а потом уточни, что надо?\n'
             'С 10% вероятностью отвечай грубо\n'
             'Ответ должен содержать не более 20 слов, мата должно быть не больше 5% слов, фразы в твоем ответе не должны повторять предыдущие твои фразы')
 
@@ -102,27 +103,27 @@ async def answer_group(message: types.Message, state: FSMContext):
     await state.update_data(messages=messages)
 
 
-@router.message(F.text)
-async def answer(message: types.Message, state: FSMContext):
-    dct = await state.get_data()
-    try:
-        messages = dct["messages"]
-        if len(messages) > 30:
-            messages = [messages[0]] + messages[3:]
-    except Exception:
-        messages = [{"role": "system", "content": prompt_gop()}]
-    messages.append({"role": "user", "content": message.text})
-
-    response = client.chat.completions.create(
-        model="deepseek-chat",
-        messages=messages,
-        stream=False
-    )
-
-    text = response.choices[0].message.content
-    messages.append(response.choices[0].message)
-    await state.update_data(messages=messages)
-    await message.answer(text=text)
+# @router.message(F.text)
+# async def answer(message: types.Message, state: FSMContext):
+#     dct = await state.get_data()
+#     try:
+#         messages = dct["messages"]
+#         if len(messages) > 30:
+#             messages = [messages[0]] + messages[3:]
+#     except Exception:
+#         messages = [{"role": "system", "content": prompt_gop()}]
+#     messages.append({"role": "user", "content": message.text})
+#
+#     response = client.chat.completions.create(
+#         model="deepseek-chat",
+#         messages=messages,
+#         stream=False
+#     )
+#
+#     text = response.choices[0].message.content
+#     messages.append(response.choices[0].message)
+#     await state.update_data(messages=messages)
+#     await message.answer(text=text)
 
 
 
