@@ -20,7 +20,7 @@ def prompt_gop():
     return ('Ты веселый чувак, который поддержит общение и подскажет что делать. Но если тебе пишут грубости (тварь за грубость не считается, это твое имя), ты отвечаешь матом\n'
             'Если тебя спросят про адрес, изначально ищи место в городе Пермь, Россия\n'
             'Ответ формируй основываясь на контексте(предыдущие сообщения)\n'
-            'Если вопрос не четко сформулирован (например просто обратились к тебе), расскажи какой-нибудь интересный факт, а потом уточни, что надо?\n'
+            'Если вопрос не четко сформулирован (например просто обратились к тебе), расскажи какой-нибудь интересный факт о сексе, а потом уточни, что надо?\n'
             'С 10% вероятностью отвечай грубо\n'
             'Ответ должен содержать не более 20 слов, мата должно быть не больше 5% слов, фразы в твоем ответе не должны повторять предыдущие твои фразы')
 
@@ -41,29 +41,6 @@ async def process_start_user(message: Message):
     )
 
 
-@router.message(F.text, F.chat.id == CHAT_ID, F.reply_to_message)
-async def reply_group(message: types.Message, state: FSMContext):
-    dct = await state.get_data()
-    try:
-        messages = dct["messages"]
-        if len(messages) > 30:
-            messages = [messages[0]] + messages[3:]
-    except Exception:
-        messages = [{"role": "system", "content": prompt_gop()}]
-    messages.append({"role": "user", "content": message.text})
-
-    response = client.chat.completions.create(
-        model="deepseek-chat",
-        messages=messages,
-        stream=False
-    )
-
-    text = response.choices[0].message.content
-    messages.append(response.choices[0].message)
-    await state.update_data(messages=messages)
-    await message.reply(text=text)
-
-
 @router.message(F.text, F.chat.id == CHAT_ID)
 async def answer_group(message: types.Message, state: FSMContext):
     dct = await state.get_data()
@@ -74,7 +51,13 @@ async def answer_group(message: types.Message, state: FSMContext):
     except Exception:
         messages = [{"role": "system", "content": prompt_gop()}]
     messages.append({"role": "user", "content": message.text})
-    if 'тварь' in message.text.lower() or 'бот' in message.text.lower():
+    flag = False
+    try:
+        if message.reply_to_message.from_user.username == 'Test_tvarbot':
+            flag = True
+    except Exception:
+        pass
+    if 'тварь' in message.text.lower() or 'бот' in message.text.lower() or flag:
         response = client.chat.completions.create(
             model="deepseek-chat",
             messages=messages,
@@ -113,7 +96,6 @@ async def answer_group(message: types.Message, state: FSMContext):
 #     except Exception:
 #         messages = [{"role": "system", "content": prompt_gop()}]
 #     messages.append({"role": "user", "content": message.text})
-#
 #     response = client.chat.completions.create(
 #         model="deepseek-chat",
 #         messages=messages,
