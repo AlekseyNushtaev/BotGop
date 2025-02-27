@@ -53,7 +53,7 @@ async def answer_group(message: types.Message, state: FSMContext):
         if len(messages) > 30:
             messages = messages[2:]
         for mess in messages:
-            if time_now - mess[0] > datetime.timedelta(hours=1):
+            if time_now - mess[0] < datetime.timedelta(hours=1):
                 messages_new.append(mess)
                 messages_to_ai.append(mess[1])
         messages = messages_new
@@ -109,7 +109,7 @@ async def answer(message: types.Message, state: FSMContext):
         if len(messages) > 30:
             messages = messages[2:]
         for mess in messages:
-            if time_now - mess[0] > datetime.timedelta(hours=1):
+            if time_now - mess[0] < datetime.timedelta(hours=1):
                 messages_new.append(mess)
                 messages_to_ai.append(mess[1])
         messages = messages_new
