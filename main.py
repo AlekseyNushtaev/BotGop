@@ -7,7 +7,6 @@ from aiogram.fsm.strategy import FSMStrategy
 import handlers
 from aiogram import Dispatcher
 from bot import bot
-from config import CHAT_ID
 
 logger = logging.getLogger(__name__)
 
