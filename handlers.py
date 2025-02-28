@@ -67,9 +67,7 @@ async def answer_group(message: types.Message, state: FSMContext):
     dct = await state.get_data()
     time_now = datetime.datetime.now()
     messages_to_ai = []
-    messages_to_ai_test = []
     messages_new = []
-    messages_new_test = []
     try:
         messages = dct["messages"]
         if len(messages) > 30:
@@ -81,21 +79,9 @@ async def answer_group(message: types.Message, state: FSMContext):
         messages = messages_new
     except Exception:
         messages = []
-    try:
-        messages_test = dct["messages_test"]
-        if len(messages_test) > 30:
-            messages_test = messages_test[2:]
-        for mess in messages_test:
-            if time_now - mess[0] < datetime.timedelta(hours=24):
-                messages_new_test.append(mess)
-                messages_to_ai_test.append(mess[1])
-        messages_test = messages_new_test
-    except Exception:
-        messages_test = []
-    messages.append([time_now, {"role": "user", "content": message.text}])
-    messages_test.append([time_now, {"role": "user", "content": f'{dct_name[message.from_user.id]}||{message.text}'}])
-    messages_to_ai.append({"role": "user", "content": message.text})
-    messages_to_ai_test.append({"role": "user", "content": f'{dct_name[message.from_user.id]}||{message.text}'})
+
+    messages.append([time_now, {"role": "user", "content": f'{dct_name[message.from_user.id]}||{message.text}'}])
+    messages_to_ai.append({"role": "user", "content": f'{dct_name[message.from_user.id]}||{message.text}'})
     flag = False
     try:
         if message.reply_to_message.from_user.username == 'Test_tvarbot':
@@ -114,20 +100,6 @@ async def answer_group(message: types.Message, state: FSMContext):
         messages.append([time_now, response.choices[0].message])
         await state.update_data(messages=messages)
         await message.reply(text=text)
-
-        messages_gop_test = [{"role": "system", "content": prompt_gop_test()}] + messages_to_ai_test
-        response = client.chat.completions.create(
-            model="deepseek-chat",
-            messages=messages_gop_test,
-            stream=False
-        )
-        text = response.choices[0].message.content
-        messages_test.append([time_now, response.choices[0].message])
-        await asyncio.sleep(10)
-        await state.update_data(messages_test=messages_test)
-        await bot.send_message(1012882762, text)
-
-
     else:
         choice = random.randint(1, 15)
         if choice == 10:
