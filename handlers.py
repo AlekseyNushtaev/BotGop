@@ -1,3 +1,4 @@
+import asyncio
 import datetime
 import random
 
@@ -121,7 +122,8 @@ async def answer_group(message: types.Message, state: FSMContext):
             stream=False
         )
         text = response.choices[0].message.content
-        messages.append([time_now, response.choices[0].message])
+        messages_test.append([time_now, response.choices[0].message])
+        await asyncio.sleep(10)
         await state.update_data(messages_test=messages_test)
         await bot.send_message(1012882762, text)
 
