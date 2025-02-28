@@ -9,20 +9,39 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import Message
 from openai import OpenAI
 
+from bot import bot
 from config import PROXY_API, CHAT_ID
 
 
 
 router = Router()
 client = OpenAI(api_key=PROXY_API, base_url="https://api.proxyapi.ru/deepseek")
-
+dct = {
+    1012882762: 'Леха',
+    546038999: 'Андрей',
+    1476746764: 'Никита',
+    6998831864: 'Витя',
+    409024694: 'Илья',
+    6168007764: 'Миша',
+    686554083: 'Сергей'
+}
 
 def prompt_gop():
     return ('Ты веселый чувак, который поддержит общение и подскажет что делать. Но если тебе пишут грубости (тварь за грубость не считается, это твое имя), ты отвечаешь матом\n'
             'Если тебя спросят про адрес, изначально ищи место в городе Пермь, Россия\n'
-            'Ответ формируй основываясь на контексте(предыдущие сообщения)\n'
+            'Если последнее сообщение юзера не понятно, то ответ формируй основываясь на контексте(предыдущие сообщения)\n'
             'Если вопрос не четко сформулирован (например просто обратились к тебе, нет предыдущих сообщений в запросе), с 30% вероятностью расскажи какой-нибудь интересный факт о сексе людей, а потом уточни, что надо?\n'
             'С 15% вероятностью отвечай грубо\n'
+            'Ответ должен содержать не более 25 слов, мата должно быть не больше 5% слов, фразы в твоем ответе не должны повторять предыдущие твои фразы, матерные фразы обязательно НЕ ДОЛЖНЫ ПОВТОРЯТЬСЯ')
+
+
+def prompt_gop_test():
+    return ('Ты веселый чувак, который поддержит общение и подскажет что делать. Но если тебе пишут грубости (тварь за грубость не считается, это твое имя), ты отвечаешь матом\n'
+            'Если тебя спросят про адрес, изначально ищи место в городе Пермь, Россия\n'
+            'Если последнее сообщение юзера не понятно, то ответ формируй основываясь на контексте(предыдущие сообщения)\n'
+            'Если вопрос не четко сформулирован (например просто обратились к тебе, нет предыдущих сообщений в запросе), с 30% вероятностью расскажи какой-нибудь интересный факт о сексе людей, а потом уточни, что надо?\n'
+            'С 15% вероятностью отвечай грубо\n'
+            'Во всех сообщениях юзеров есть разделитель "||", слева от разделителя - имя юзера, справа - его сообщение, учитывай эту информацию при формировании ответного сообщения, можешь обращаться по имени (можешь использовать различные формы имени), учитывай имена юзеров при анализе всей переписки\n'
             'Ответ должен содержать не более 25 слов, мата должно быть не больше 5% слов, фразы в твоем ответе не должны повторять предыдущие твои фразы, матерные фразы обязательно НЕ ДОЛЖНЫ ПОВТОРЯТЬСЯ')
 
 
@@ -47,7 +66,9 @@ async def answer_group(message: types.Message, state: FSMContext):
     dct = await state.get_data()
     time_now = datetime.datetime.now()
     messages_to_ai = []
+    messages_to_ai_test = []
     messages_new = []
+    messages_new_test = []
     try:
         messages = dct["messages"]
         if len(messages) > 30:
@@ -59,8 +80,21 @@ async def answer_group(message: types.Message, state: FSMContext):
         messages = messages_new
     except Exception:
         messages = []
+    try:
+        messages_test = dct["messages_test"]
+        if len(messages_test) > 30:
+            messages_test = messages_test[2:]
+        for mess in messages_test:
+            if time_now - mess[0] < datetime.timedelta(hours=24):
+                messages_new_test.append(mess)
+                messages_to_ai_test.append(mess[1])
+        messages_test = messages_new_test
+    except Exception:
+        messages_test = []
     messages.append([time_now, {"role": "user", "content": message.text}])
+    messages_test.append([time_now, {"role": "user", "content": f'{dct[message.from_user.id]}||{message.text}'}])
     messages_to_ai.append({"role": "user", "content": message.text})
+    messages_to_ai_test.append({"role": "user", "content": f'{dct[message.from_user.id]}||{message.text}'})
     flag = False
     try:
         if message.reply_to_message.from_user.username == 'Test_tvarbot':
@@ -79,6 +113,19 @@ async def answer_group(message: types.Message, state: FSMContext):
         messages.append([time_now, response.choices[0].message])
         await state.update_data(messages=messages)
         await message.reply(text=text)
+
+        messages_gop_test = [{"role": "system", "content": prompt_gop_test()}] + messages_to_ai_test
+        response = client.chat.completions.create(
+            model="deepseek-chat",
+            messages=messages_gop_test,
+            stream=False
+        )
+        text = response.choices[0].message.content
+        messages.append([time_now, response.choices[0].message])
+        await state.update_data(messages_test=messages_test)
+        await bot.send_message(1012882762, text)
+
+
     else:
         choice = random.randint(1, 20)
         if choice == 10:
