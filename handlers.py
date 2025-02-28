@@ -129,7 +129,7 @@ async def answer_group(message: types.Message, state: FSMContext):
 
 
     else:
-        choice = random.randint(1, 20)
+        choice = random.randint(1, 15)
         if choice == 10:
             messages_rifma = [{"role": "system", "content": prompt_rifma()}] + messages_to_ai
             response = client.chat.completions.create(
