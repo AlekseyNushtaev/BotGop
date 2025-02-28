@@ -16,7 +16,7 @@ from config import PROXY_API, CHAT_ID
 
 router = Router()
 client = OpenAI(api_key=PROXY_API, base_url="https://api.proxyapi.ru/deepseek")
-dct = {
+dct_name = {
     1012882762: 'Леха',
     546038999: 'Андрей',
     1476746764: 'Никита',
@@ -92,9 +92,9 @@ async def answer_group(message: types.Message, state: FSMContext):
     except Exception:
         messages_test = []
     messages.append([time_now, {"role": "user", "content": message.text}])
-    messages_test.append([time_now, {"role": "user", "content": f'{dct[message.from_user.id]}||{message.text}'}])
+    messages_test.append([time_now, {"role": "user", "content": f'{dct_name[message.from_user.id]}||{message.text}'}])
     messages_to_ai.append({"role": "user", "content": message.text})
-    messages_to_ai_test.append({"role": "user", "content": f'{dct[message.from_user.id]}||{message.text}'})
+    messages_to_ai_test.append({"role": "user", "content": f'{dct_name[message.from_user.id]}||{message.text}'})
     flag = False
     try:
         if message.reply_to_message.from_user.username == 'Test_tvarbot':
