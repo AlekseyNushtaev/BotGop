@@ -33,14 +33,12 @@ def prompt_gop():
             'Если тебя спросят про адрес, изначально ищи место в городе Пермь, Россия\n'
             'Если последнее сообщение юзера не понятно, то ответ формируй основываясь на контексте(предыдущие сообщения)\n'
             'Если вопрос не четко сформулирован (например просто обратились к тебе, нет предыдущих сообщений в запросе), с 30% вероятностью расскажи какой-нибудь интересный факт о сексе людей, а потом уточни, что надо?\n'
-            'С 15% вероятностью отвечай грубо\n'
             'Во всех сообщениях юзеров есть разделитель "||", слева от разделителя - имя юзера, справа - его сообщение, учитывай эту информацию при формировании ответного сообщения, можешь обращаться по имени (можешь использовать различные формы имени), учитывай имена юзеров при анализе всей переписки\n'
-            'Ответ должен содержать не более 25 слов, мата должно быть не больше 5% слов, фразы в твоем ответе не должны повторять предыдущие твои фразы, матерные фразы обязательно НЕ ДОЛЖНЫ ПОВТОРЯТЬСЯ')
+            'Ответ должен содержать не более 25 слов, фразы в твоем ответе не должны повторять предыдущие твои фразы')
 
 
 def prompt_rifma():
-    return ('Ты самый крутой матершинник.'
-            'Ответь на сообщение красивой матерной фразой, но не оскорбительной. Ответ должен быть не более 10 слов, фразы в твоем ответе не должны повторять предыдущие твои фразы')
+    return ('Ответь на сообщение смешной фразой, но не оскорбительной. Ответ должен быть не более 10 слов, фразы в твоем ответе не должны повторять предыдущие твои фразы')
 
 
 @router.message(CommandStart())
@@ -111,38 +109,38 @@ async def answer_group(message: types.Message, state: FSMContext):
     await state.update_data(messages=messages)
 
 
-@router.message(F.text)
-async def answer(message: types.Message, state: FSMContext):
-    dct = await state.get_data()
-    time_now = datetime.datetime.now()
-    messages_to_ai = []
-    messages_new = []
-    try:
-        messages = dct["messages"]
-        if len(messages) > 30:
-            messages = messages[2:]
-        for mess in messages:
-            if time_now - mess[0] < datetime.timedelta(hours=1):
-                messages_new.append(mess)
-                messages_to_ai.append(mess[1])
-        messages = messages_new
-    except Exception:
-        messages = []
-    messages.append([time_now, {"role": "user", "content": message.text}])
-    messages_to_ai.append({"role": "user", "content": message.text})
-
-    messages_gop = [{"role": "system", "content": prompt_gop()}] + messages_to_ai
-    response = client.chat.completions.create(
-        model="deepseek-chat",
-        messages=messages_gop,
-        stream=False
-    )
-    time_now = datetime.datetime.now()
-    text = response.choices[0].message.content
-    messages.append([time_now, {'role': response.choices[0].message.role, 'content': response.choices[0].message.content}])
-    await state.update_data(messages=messages)
-    await message.reply(text=text)
-    print(messages)
+# @router.message(F.text)
+# async def answer(message: types.Message, state: FSMContext):
+#     dct = await state.get_data()
+#     time_now = datetime.datetime.now()
+#     messages_to_ai = []
+#     messages_new = []
+#     try:
+#         messages = dct["messages"]
+#         if len(messages) > 30:
+#             messages = messages[2:]
+#         for mess in messages:
+#             if time_now - mess[0] < datetime.timedelta(hours=1):
+#                 messages_new.append(mess)
+#                 messages_to_ai.append(mess[1])
+#         messages = messages_new
+#     except Exception:
+#         messages = []
+#     messages.append([time_now, {"role": "user", "content": message.text}])
+#     messages_to_ai.append({"role": "user", "content": message.text})
+#
+#     messages_gop = [{"role": "system", "content": prompt_gop()}] + messages_to_ai
+#     response = client.chat.completions.create(
+#         model="deepseek-chat",
+#         messages=messages_gop,
+#         stream=False
+#     )
+#     time_now = datetime.datetime.now()
+#     text = response.choices[0].message.content
+#     messages.append([time_now, {'role': response.choices[0].message.role, 'content': response.choices[0].message.content}])
+#     await state.update_data(messages=messages)
+#     await message.reply(text=text)
+#     print(messages)
 
 
 
