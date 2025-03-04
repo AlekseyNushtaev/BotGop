@@ -187,7 +187,7 @@ async def answer(message: types.Message, state: FSMContext):
         message.from_user.last_name,
         datetime.datetime.now()
     )
-    if len(get_all_messages_from_user(message.from_user.id)) <= 14:
+    if len(get_all_messages_from_user(message.from_user.id)) <= 60:
         if len(message.text) <= 200:
             dct = await state.get_data()
             time_now = datetime.datetime.now()
