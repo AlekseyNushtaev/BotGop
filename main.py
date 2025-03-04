@@ -7,11 +7,13 @@ from aiogram.fsm.strategy import FSMStrategy
 import handlers
 from aiogram import Dispatcher
 from bot import bot
+from db.models import create_tables
 
 logger = logging.getLogger(__name__)
 
 
 async def main() -> None:
+    create_tables()
     logging.basicConfig(level=logging.INFO, format='%(filename)s:%(lineno)d %(levelname)-8s [%(asctime)s] - %(name)s - %(message)s')
     logging.info('Starting bot')
 
