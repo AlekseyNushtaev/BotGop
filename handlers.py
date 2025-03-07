@@ -46,6 +46,7 @@ def prompt_gop():
 4. Если сообщение является продолжением предыдущей беседы, тщательно проанализируй переписку, относящуюся к этому сообщению и выдай ответ.
 5. Если сообщение является новым вопросом, выдай на него развернутый ответ.
 6. Если сообщение не несет смысловой нагрузки, уточни у юзера, что он имеет в виду.
+7. В 20% используй матерные выражения в сообщении.
 </Instructions>
 
 <Constraints>
@@ -57,7 +58,7 @@ def prompt_gop():
     """
 
 def prompt_rifma():
-    return ('Ответь на сообщение смешной фразой, но не оскорбительной. Ответ должен быть не более 10 слов, фразы в твоем ответе не должны повторять предыдущие твои фразы')
+    return ('Ответь на сообщение смешной фразой. Ответ должен быть не более 10 слов, фразы в твоем ответе не должны повторять предыдущие твои фразы')
 
 
 def prompt_solo():
@@ -187,7 +188,7 @@ async def answer(message: types.Message, state: FSMContext):
         message.from_user.last_name,
         datetime.datetime.now()
     )
-    if len(get_all_messages_from_user(message.from_user.id)) <= 60:
+    if len(get_all_messages_from_user(message.from_user.id)) <= 20:
         if len(message.text) <= 200:
             dct = await state.get_data()
             time_now = datetime.datetime.now()
@@ -237,6 +238,7 @@ async def answer(message: types.Message, state: FSMContext):
             await message.answer(text='Не направляйте сообщения больше 200 символов, они не будут обрабатываться.')
     else:
         await message.answer(text='Вы превысили лимит запросов')
+
 
 
 
